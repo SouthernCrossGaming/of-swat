@@ -8,7 +8,7 @@ Open Fortress rendition of the classic SWAT gametype from the Halo series.
 - Linux
 
 ## Installation
-Copy the `plugins` and `gamedata` directories to your `<game>/addons/sourcemod` directory.
+Download the [latest release](https://github.com/SouthernCrossGaming/of-swat/releases/latest/download/of-swat.zip), unzip and copy to your `<game>/addons/sourcemod` directory.
 
 ## Configuration
 
