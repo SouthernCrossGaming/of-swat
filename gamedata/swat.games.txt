@@ -1,0 +1,25 @@
+"Games"
+{
+	"open_fortress"
+	{
+		"Functions"
+		{
+			"CTFWeaponBase::GetDamageType"
+			{
+				"signature" "CTFWeaponBase::GetDamageType"
+				"callconv" "thiscall"
+				"return" "int"
+				"this"	"entity"
+			}
+		}
+
+		"Signatures"
+		{
+			"CTFWeaponBase::GetDamageType"
+			{
+				"library" "server"
+				"linux"		"@_ZNK13CTFWeaponBase13GetDamageTypeEv"
+			}
+		}
+	}
+}
