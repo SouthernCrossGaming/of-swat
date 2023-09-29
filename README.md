@@ -1,5 +1,12 @@
 # Open Fortress SWAT
-Open Fortress rendition of the classic SWAT gametype from the Halo series.
+Open Fortress rendition of the classic [SWAT](https://halo.fandom.com/wiki/Team_SWAT) gametype from the Halo series. 
+
+Gameplay Changes:
+- Players spawn with an assault rifle, revolver, and crowbar only.
+- All weapons spawns and health pills are removed.
+- Headshots are enabled.
+- Damage falloff is disabled.
+- Damage values are tweaked (based upon cvars)
 
 ## Compatible Games
 - Open Fortress
