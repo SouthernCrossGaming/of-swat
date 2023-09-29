@@ -1,14 +1,13 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <openfortress>
-#include <ofitems>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "1.0.1"
 public Plugin myinfo = {
-    name = "[OF] Swat",
+    name = "[OF] SWAT",
     author = "Code: Fraeven, Rowedahelicon | Original Concept: Bungie | OF Concept: Greenie",
-    description = "Swat gametype for OF. Assault rifles and revolvers only with headshots enabled.",
+    description = "SWAT gametype for OF. Assault rifles and revolvers only with headshots enabled.",
     version = PLUGIN_VERSION,
     url = "https://scg.wtf"
 };
