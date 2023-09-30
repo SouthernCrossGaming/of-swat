@@ -4,7 +4,7 @@
 #include <dhooks>
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.1.0"
+#define PLUGIN_VERSION "1.1.1"
 public Plugin myinfo = {
     name = "[OF] SWAT",
     author = "Code: Fraeven, Rowedahelicon | Original Concept: Bungie | OF Concept: Greenie",
@@ -23,7 +23,7 @@ Handle g_hGetDamageType = INVALID_HANDLE;
 Handle g_hRespawn = INVALID_HANDLE;
 Handle g_hAnnouncerThink = INVALID_HANDLE;
 
-bool b_gRoundStarted = true;
+float g_flLastCritSound[MAXPLAYERS+1]  = {0.0};
 
 public void OnPluginStart()
 {
@@ -33,8 +33,6 @@ public void OnPluginStart()
     g_Cvar_DmgARBodyshot = CreateConVar("of_swat_dmg_ar_bodyshot", "25.0", "Assault Rifle Bodyshot Damage");
     g_Cvar_DmgRevHeadshot = CreateConVar("of_swat_dmg_rev_headshot", "150.0", "Revolver Headshot Damage");
     g_Cvar_DmgRevBodyshot = CreateConVar("of_swat_dmg_rev_bodyshot", "40.0", "Revolver Bodyshot Damage");
-
-    HookEvent("teamplay_round_start", Event_RoundStart);
 
     // For SDK Calls, Hooks, and Detours
     Handle hConf = LoadGameConfigFile("swat.games");
@@ -86,12 +84,6 @@ public void ConVar_EnableChanged(ConVar convar, const char[] oldValue, const cha
     {
         DisableSwat();
     }
-}
-
-public void OnMapEnd()
-{
-    b_gRoundStarted = false;
-    DisableSwat();
 }
 
 public void EnableSwat()
@@ -210,15 +202,12 @@ stock Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
         if (isHeadshot)
         {
             damage = GetConVarFloat(g_Cvar_DmgARHeadshot) / 3.0;
-
-            if (!IsFakeClient(victim) && !IsInvulnerable(victim))
-            {
-                EmitSoundToClient(victim, "player/crit_received1.wav");
-            }
+            PlayCritReceived(victim);
         }
         else
         {
             damage = GetConVarFloat(g_Cvar_DmgARBodyshot);
+            PlayCritReceived(victim);
         }
     }
     else if (IsRevolver(weaponClass))
@@ -226,15 +215,12 @@ stock Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
         if (isHeadshot)
         {
             damage = GetConVarFloat(g_Cvar_DmgRevHeadshot) / 3.0;
-
-            if (!IsFakeClient(victim) && !IsInvulnerable(victim))
-            {
-                EmitSoundToClient(victim, "player/crit_received1.wav");
-            }
+            PlayCritReceived(victim);
         }
         else
         {
             damage = GetConVarFloat(g_Cvar_DmgRevBodyshot);
+            PlayCritReceived(victim);
         }
     }
 
@@ -257,9 +243,6 @@ public void OF_OnPlayerSpawned(int client)
     }
 
     RequestFrame(RequestFrame_Loadout, client);
-
-    SDKUnhook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
-    SDKHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
 }
 
 public void RequestFrame_Loadout(int client)
@@ -271,11 +254,14 @@ public void RequestFrame_Loadout(int client)
 
     TF2_RemoveAllWeapons(client);
     SpawnLoadout(client);
+
+    SDKUnhook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
+    SDKHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-    if (!IsEnabled() || !b_gRoundStarted)
+    if (!IsEnabled())
     {
         return;
     }
@@ -364,6 +350,7 @@ public MRESReturn Detour_GetDamageType(int weapon, Handle hReturn)
     {
         // No damage falloff, enable headshots
         DHookSetReturn(hReturn, DMG_BULLET | DMG_NOCLOSEDISTANCEMOD | DMG_USE_HITLOCATIONS);
+
         return MRES_Supercede;
     }
 
@@ -390,15 +377,16 @@ public MRESReturn Detour_AnnouncerThink(int spawner)
     return MRES_Supercede;
 }
 
-stock Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
+public void PlayCritReceived(int client)
 {
-    if (!IsEnabled())
+    float currentTime = GetGameTime();
+    float lastCritTime = g_flLastCritSound[client];
+
+    bool recentPlayedCritSound = currentTime - lastCritTime < 0.5
+
+    if (!IsFakeClient(client) && !IsInvulnerable(client) && !recentPlayedCritSound)
     {
-        return Plugin_Continue;
+        EmitSoundToClient(client, "player/crit_received1.wav");
+        g_flLastCritSound[client] = currentTime;
     }
-
-    b_gRoundStarted = true;
-    EnableSwat();
-
-    return Plugin_Continue;
 }

@@ -21,12 +21,15 @@ Download the [latest release](https://github.com/SouthernCrossGaming/of-swat/rel
 ## Configuration
 
 ### Enabling/disabling the SWAT gametype
-Enabling and disabling SWAT during an active round is safe to do. All weapons spawns/pills will be disabled and reappear when disabled.  
+Enabling and disabling SWAT during an active round is safe to do. All weapons spawners and pills will be disabled when SWAT is enabled and will reappear when SWAT is disabled.  
   
-`of_swat_enabled` (0/1, default 0)  
+`of_swat_enabled` - Enables or disables the SWAT gametype (0/1, default 0)  
 
 ### Configuring damage values
 `of_swat_dmg_ar_headshot` - Sets damage for assault rifle headshots (default 50.0)  
 `of_swat_dmg_ar_bodyshot` - Sets damage for assault rifle bodyshots (default 25.0)  
 `of_swat_dmg_rev_headshot` - Sets damage for revolver headshots (default 150.0)  
 `of_swat_dmg_rev_bodyshot` - Sets damage for revolver bodyshots (default 40.0)  
+
+### Powerups
+`of_powerups` - It is recommended to disable powerups for this gametype by setting this standard CVar to 0
