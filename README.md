@@ -1,5 +1,15 @@
 # Open Fortress SWAT
-Open Fortress rendition of the classic [SWAT](https://halo.fandom.com/wiki/Team_SWAT) gametype from the Halo series. 
+
+<div align="center">
+  An Open Fortress rendition of the classic <a href=https://halo.fandom.com/wiki/Team_SWAT>SWAT</a> gametype from the Halo series. 
+  </br>
+  </br>
+  <img src="https://github.com/SouthernCrossGaming/of-swat/assets/20617130/050dd5dd-c6ef-4f62-b138-1b30e94211bf" width=512>
+  </br>
+  <sub>SFM Poster Credit:<a href=https://twitter.com/marlee_goat> marlee_goat</a></sub>
+</div>
+
+---
 
 ### Gameplay Changes
 - Players spawn with an assault rifle, revolver, and crowbar only.
@@ -33,3 +43,11 @@ Enabling and disabling SWAT during an active round is safe to do. All weapons sp
 
 ### Powerups
 `of_powerups` - It is recommended to disable powerups for this gametype by setting this standard CVar to 0
+
+# Credits
+- [Fraeven](https://fraeven.dev) (Code, Testing)
+- [Rowedahelicon](https://rowdythecrux.dev) (Debugging Assistance)
+- [Greenie](https://steamcommunity.com/id/wannabemapper/) (Open Fortress Concept)
+- [Bungie](https://en.wikipedia.org/wiki/Bungie) (Original Concept)
+- [marlee_goat](https://twitter.com/marlee_goat) (SFM Poster)
+- Many members of the Open Fortress community (Testing)
