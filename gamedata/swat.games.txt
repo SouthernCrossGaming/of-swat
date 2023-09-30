@@ -11,6 +11,22 @@
 				"return" "int"
 				"this"	"entity"
 			}
+
+			"CWeaponSpawner::Respawn"
+			{
+				"signature" "CWeaponSpawner::Respawn"
+				"callconv" "thiscall"
+				"return" "void"
+				"this"	"entity"
+			}
+
+			"CWeaponSpawner::AnnouncerThink"
+			{
+				"signature" "CWeaponSpawner::AnnouncerThink"
+				"callconv" "thiscall"
+				"return" "void"
+				"this"	"entity"
+			}
 		}
 
 		"Signatures"
@@ -19,6 +35,18 @@
 			{
 				"library" "server"
 				"linux"		"@_ZNK13CTFWeaponBase13GetDamageTypeEv"
+			}
+
+			"CWeaponSpawner::Respawn"
+			{
+				"library" "server"
+				"linux"		"@_ZN14CWeaponSpawner7RespawnEv"
+			}
+
+			"CWeaponSpawner::AnnouncerThink"
+			{
+				"library" "server"
+				"linux" "@_ZN14CWeaponSpawner14AnnouncerThinkEv"
 			}
 		}
 	}

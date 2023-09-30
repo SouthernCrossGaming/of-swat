@@ -1,12 +1,13 @@
 # Open Fortress SWAT
 Open Fortress rendition of the classic [SWAT](https://halo.fandom.com/wiki/Team_SWAT) gametype from the Halo series. 
 
-Gameplay Changes:
+### Gameplay Changes
 - Players spawn with an assault rifle, revolver, and crowbar only.
-- All weapons spawns and health pills are removed.
-- Headshots are enabled.
+- Assault rifle is moved to slot 3.
+- All weapons spawns and health pills are disabled.
+- Headshots for assult rifle and revolver are enabled.
 - Damage falloff is disabled.
-- Damage values are tweaked (based upon cvars)
+- Damage values are tweaked (based upon cvars).
 
 ## Compatible Games
 - Open Fortress
@@ -20,7 +21,7 @@ Download the [latest release](https://github.com/SouthernCrossGaming/of-swat/rel
 ## Configuration
 
 ### Enabling/disabling the SWAT gametype
-Enabling SWAT during an active round is safe to do. Disabling is not and will not replace entities that were removed or reset player loadouts.  
+Enabling and disabling SWAT during an active round is safe to do. All weapons spawns/pills will be disabled and reappear when disabled.  
   
 `of_swat_enabled` (0/1, default 0)  
 
