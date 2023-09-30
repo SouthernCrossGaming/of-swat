@@ -4,7 +4,7 @@
 #include <dhooks>
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.1.1"
+#define PLUGIN_VERSION "1.1.2"
 public Plugin myinfo = {
     name = "[OF] SWAT",
     author = "Code: Fraeven, Rowedahelicon | Original Concept: Bungie | OF Concept: Greenie",
@@ -186,7 +186,8 @@ stock Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float 
     if (!IsEnabled() ||
         !IsValidClient(attacker) ||
         !IsValidClient(victim) ||
-        attacker == victim)
+        attacker == victim ||
+        TF2_IsPlayerInCondition(attacker, TFCond_Taunting))
     {
         return Plugin_Continue;
     }
