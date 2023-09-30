@@ -6,7 +6,7 @@
   </br>
   <img src="https://github.com/SouthernCrossGaming/of-swat/assets/20617130/050dd5dd-c6ef-4f62-b138-1b30e94211bf" width=512>
   </br>
-  <sub>SFM Poster Credit:<a href=https://twitter.com/marlee_goat> marlee_goat</a></sub>
+  <sub>SFM Poster Credit:<a href=https://marlee-goat.neocities.org/> marlee_goat</a></sub>
 </div>
 
 ---
@@ -49,5 +49,5 @@ Enabling and disabling SWAT during an active round is safe to do. All weapons sp
 - [Rowedahelicon](https://rowdythecrux.dev) (Debugging Assistance)
 - [Greenie](https://steamcommunity.com/id/wannabemapper/) (Open Fortress Concept)
 - [Bungie](https://en.wikipedia.org/wiki/Bungie) (Original Concept)
-- [marlee_goat](https://twitter.com/marlee_goat) (SFM Poster)
+- [marlee_goat](https://marlee-goat.neocities.org/) (SFM Poster)
 - Many members of the Open Fortress community (Testing)
