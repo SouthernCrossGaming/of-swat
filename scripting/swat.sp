@@ -18,6 +18,7 @@ ConVar g_Cvar_DmgARHeadshot;
 ConVar g_Cvar_DmgARBodyshot;
 ConVar g_Cvar_DmgRevHeadshot;
 ConVar g_Cvar_DmgRevBodyshot;
+Handle g_Cvar_Tags;
 
 Handle g_hGetDamageType = INVALID_HANDLE;
 Handle g_hRespawn = INVALID_HANDLE;
@@ -29,10 +30,13 @@ public void OnPluginStart()
 {
     // Custom ConVars
     g_Cvar_Enabled = CreateConVar("of_swat_enabled", "0", "Enable swat mode. DEFAULT: 0 (off)");
-    g_Cvar_DmgARHeadshot = CreateConVar("of_swat_dmg_ar_headshot", "50.0", "Assault Rifle Headshot Damage");
+    g_Cvar_DmgARHeadshot = CreateConVar("of_swat_dmg_ar_headshot", "75.0", "Assault Rifle Headshot Damage");
     g_Cvar_DmgARBodyshot = CreateConVar("of_swat_dmg_ar_bodyshot", "25.0", "Assault Rifle Bodyshot Damage");
     g_Cvar_DmgRevHeadshot = CreateConVar("of_swat_dmg_rev_headshot", "150.0", "Revolver Headshot Damage");
-    g_Cvar_DmgRevBodyshot = CreateConVar("of_swat_dmg_rev_bodyshot", "40.0", "Revolver Bodyshot Damage");
+    g_Cvar_DmgRevBodyshot = CreateConVar("of_swat_dmg_rev_bodyshot", "50.0", "Revolver Bodyshot Damage");
+
+    // OF cvars
+    g_Cvar_Tags = FindConVar("sv_tags");
 
     // For SDK Calls, Hooks, and Detours
     Handle hConf = LoadGameConfigFile("swat.games");
@@ -69,9 +73,88 @@ public void OnPluginStart()
     }
 }
 
-public bool IsEnabled()
+public void OnPluginEnd()
 {
-    return GetConVarBool(g_Cvar_Enabled);
+    DisableSwat();
+}
+
+public void OF_OnPlayerSpawned(int client)
+{
+    if (!IsEnabled() ||
+        !IsValidClient(client) ||
+        GetClientTeam(client) == 0 ||
+        GetClientTeam(client) == 1)
+    {
+        return;
+    }
+
+    RequestFrame(RequestFrame_Loadout, client);
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+    if (!IsEnabled())
+    {
+        return;
+    }
+
+    // Remove all weapon spawners
+    if (IsWeaponSpawner(classname) || IsPill(classname))
+    {
+        DisableEntity(entity);
+    }
+
+    // Move AR to slot 2 for easier access
+    if (IsAssaultRifle(classname))
+    {
+        SetEntProp(entity, Prop_Send, "m_iSlotOverride", 2);
+    }
+}
+
+public Action Hook_Disable(int entity, int client)
+{
+    return Plugin_Handled;
+}
+
+public MRESReturn Detour_Respawn(int spawner)
+{
+    if (!IsEnabled())
+    {
+        return MRES_Ignored;
+    }
+
+    return MRES_Supercede;
+}
+
+public MRESReturn Detour_AnnouncerThink(int spawner)
+{
+    if (!IsEnabled())
+    {
+        return MRES_Ignored;
+    }
+
+    return MRES_Supercede;
+}
+
+public MRESReturn Detour_GetDamageType(int weapon, Handle hReturn)
+{
+    if (!IsEnabled())
+    {
+        return MRES_Ignored;
+    }
+
+    char classname[64];
+    GetEntityClassname(weapon, classname, sizeof(classname));
+
+    if (IsRevolver(classname) || IsAssaultRifle(classname))
+    {
+        // No damage falloff, enable headshots
+        DHookSetReturn(hReturn, DMG_BULLET | DMG_NOCLOSEDISTANCEMOD | DMG_USE_HITLOCATIONS);
+
+        return MRES_Supercede;
+    }
+
+    return MRES_Ignored;
 }
 
 public void ConVar_EnableChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -86,10 +169,64 @@ public void ConVar_EnableChanged(ConVar convar, const char[] oldValue, const cha
     }
 }
 
-public void EnableSwat()
+public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-    DisableSwat();
+    if (!IsEnabled() ||
+        !IsValidClient(attacker) ||
+        !IsValidClient(victim) ||
+        attacker == victim ||
+        TF2_IsPlayerInCondition(attacker, TFCond_Taunting) ||
+        IsInvulnerable(victim))
+    {
+        return Plugin_Continue;
+    }
 
+    float originalDamage = damage;
+    bool isHeadshot = !!(damagetype & DMG_CRIT);
+
+    char weaponClass[64];
+    GetClientWeapon(attacker, weaponClass, sizeof(weaponClass));
+
+    if (IsAssaultRifle(weaponClass))
+    {
+        if (isHeadshot)
+        {
+            damage = GetConVarFloat(g_Cvar_DmgARHeadshot) / 3.0;
+            PlayCritReceived(victim);
+        }
+        else
+        {
+            damage = GetConVarFloat(g_Cvar_DmgARBodyshot);
+        }
+    }
+    else if (IsRevolver(weaponClass))
+    {
+        if (isHeadshot)
+        {
+            damage = GetConVarFloat(g_Cvar_DmgRevHeadshot) / 3.0;
+            PlayCritReceived(victim);
+        }
+        else
+        {
+            damage = GetConVarFloat(g_Cvar_DmgRevBodyshot);
+        }
+    }
+
+    if (originalDamage != damage)
+    {
+        return Plugin_Changed;
+    }
+
+    return Plugin_Continue;
+}
+
+bool IsEnabled()
+{
+    return GetConVarBool(g_Cvar_Enabled);
+}
+
+void EnableSwat()
+{
     // Give all players the swat loadouts and add hook
     for (int client = 1; client <= MaxClients; client++)
     {
@@ -102,7 +239,7 @@ public void EnableSwat()
         }
     }
 
-    // Remove all disallowed entities
+    // Disable all disallowed entities
     int ent = -1;
     while ((ent = FindEntityByClassname(ent, "dm_weapon_spawner")) != -1)
     {
@@ -113,9 +250,11 @@ public void EnableSwat()
     {
         DisableEntity(ent);
     }
+
+    MyAddServerTag("SWAT");
 }
 
-public void DisableSwat()
+void DisableSwat()
 {
     // Remove the Take Damage hook from all players
     for (int client = 1; client <= MaxClients; client++)
@@ -126,7 +265,7 @@ public void DisableSwat()
         }
     }
 
-    // Renable all disallowed entities
+    // Enable all disallowed entities
     int ent = -1;
     while ((ent = FindEntityByClassname(ent, "dm_weapon_spawner")) != -1)
     {
@@ -137,6 +276,14 @@ public void DisableSwat()
     {
         EnableEntity(ent);
     }
+
+    // Reset the slot override for the assault rifle
+    while ((ent = FindEntityByClassname(ent, "tf_weapon_assaultrifle")) != -1)
+    {
+        SetEntProp(ent, Prop_Send, "m_iSlotOverride", -1);
+    }
+
+    MyRemoveServerTag("SWAT");
 }
 
 void EnableEntity(int entity)
@@ -171,82 +318,7 @@ void RequestFrame_DisableEntity(int entity)
     SDKHook(entity, SDKHook_Touch, Hook_Disable);
 }
 
-stock Action Hook_Disable(int entity, int client)
-{
-    return Plugin_Handled;
-}
-
-public bool IsInvulnerable(int client)
-{
-    return TF2_IsPlayerInCondition(client, TFCond_Ubercharged) || TF2_IsPlayerInCondition(client, TFCond_SpawnProtect)
-}
-
-stock Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
-{
-    if (!IsEnabled() ||
-        !IsValidClient(attacker) ||
-        !IsValidClient(victim) ||
-        attacker == victim ||
-        TF2_IsPlayerInCondition(attacker, TFCond_Taunting))
-    {
-        return Plugin_Continue;
-    }
-
-    float originalDamage = damage;
-    bool isHeadshot = !!(damagetype & DMG_CRIT);
-
-    char weaponClass[64];
-    GetClientWeapon(attacker, weaponClass, sizeof(weaponClass));
-
-    if (IsAssaultRifle(weaponClass))
-    {
-        if (isHeadshot)
-        {
-            damage = GetConVarFloat(g_Cvar_DmgARHeadshot) / 3.0;
-            PlayCritReceived(victim);
-        }
-        else
-        {
-            damage = GetConVarFloat(g_Cvar_DmgARBodyshot);
-            PlayCritReceived(victim);
-        }
-    }
-    else if (IsRevolver(weaponClass))
-    {
-        if (isHeadshot)
-        {
-            damage = GetConVarFloat(g_Cvar_DmgRevHeadshot) / 3.0;
-            PlayCritReceived(victim);
-        }
-        else
-        {
-            damage = GetConVarFloat(g_Cvar_DmgRevBodyshot);
-            PlayCritReceived(victim);
-        }
-    }
-
-    if (originalDamage != damage)
-    {
-        return Plugin_Changed;
-    }
-
-    return Plugin_Continue;
-}
-
-public void OF_OnPlayerSpawned(int client)
-{
-    if (!IsEnabled() ||
-        !IsValidClient(client) ||
-        GetClientTeam(client) == 0 ||
-        GetClientTeam(client) == 1)
-    {
-        return;
-    }
-
-    RequestFrame(RequestFrame_Loadout, client);
-}
-
-public void RequestFrame_Loadout(int client)
+void RequestFrame_Loadout(int client)
 {
     if (!IsEnabled() || !IsValidClient(client))
     {
@@ -260,24 +332,26 @@ public void RequestFrame_Loadout(int client)
     SDKHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
 }
 
-public void OnEntityCreated(int entity, const char[] classname)
+void SpawnLoadout(int client)
 {
-    if (!IsEnabled())
+    SpawnWeapon(client, "tf_weapon_crowbar");
+    SpawnWeapon(client, "tf_weapon_revolver_mercenary");
+    SpawnWeapon(client, "tf_weapon_assaultrifle");
+
+    FakeClientCommand(client, "use tf_weapon_assaultrifle");
+}
+
+void SpawnWeapon(int client, char[] name)
+{
+    if (!IsValidClient(client))
     {
         return;
     }
 
-    // Remove all weapon spawners
-    if (IsWeaponSpawner(classname) || IsPill(classname))
-    {
-        DisableEntity(entity);
-    }
+    int weapon = GivePlayerItem(client, name);
+    EquipPlayerWeapon(client, weapon);
 
-    // Move AR to slot 2 for easier access
-    if (IsAssaultRifle(classname))
-    {
-        SetEntProp(entity, Prop_Send, "m_iSlotOverride", 2);
-    }
+    return;
 }
 
 bool IsRevolver(const char[] classname)
@@ -300,7 +374,12 @@ bool IsPill(const char[] classname)
     return StrEqual(classname, "item_healthkit_tiny");
 }
 
-stock bool IsValidClient(int client)
+bool IsInvulnerable(int client)
+{
+    return TF2_IsPlayerInCondition(client, TFCond_Ubercharged) || TF2_IsPlayerInCondition(client, TFCond_SpawnProtect)
+}
+
+bool IsValidClient(int client)
 {
     if (!client || client > MaxClients || client < 1)
     {
@@ -315,79 +394,61 @@ stock bool IsValidClient(int client)
     return true;
 }
 
-stock void SpawnLoadout(int client)
-{
-    SpawnWeapon(client, "tf_weapon_crowbar");
-    SpawnWeapon(client, "tf_weapon_revolver_mercenary");
-    SpawnWeapon(client, "tf_weapon_assaultrifle");
-
-    FakeClientCommand(client, "use tf_weapon_assaultrifle");
-}
-
-stock void SpawnWeapon(int client, char[] name)
-{
-    if (!IsValidClient(client))
-    {
-        return;
-    }
-
-    int weapon = GivePlayerItem(client, name);
-    EquipPlayerWeapon(client, weapon);
-
-    return;
-}
-
-public MRESReturn Detour_GetDamageType(int weapon, Handle hReturn)
-{
-    if (!IsEnabled())
-    {
-        return MRES_Ignored;
-    }
-
-    char classname[64];
-    GetEntityClassname(weapon, classname, sizeof(classname));
-
-    if (StrEqual(classname, "tf_weapon_revolver_mercenary") || StrEqual(classname, "tf_weapon_assaultrifle"))
-    {
-        // No damage falloff, enable headshots
-        DHookSetReturn(hReturn, DMG_BULLET | DMG_NOCLOSEDISTANCEMOD | DMG_USE_HITLOCATIONS);
-
-        return MRES_Supercede;
-    }
-
-    return MRES_Ignored;
-}
-
-public MRESReturn Detour_Respawn(int spawner)
-{
-    if (!IsEnabled())
-    {
-        return MRES_Ignored;
-    }
-
-    return MRES_Supercede;
-}
-
-public MRESReturn Detour_AnnouncerThink(int spawner)
-{
-    if (!IsEnabled())
-    {
-        return MRES_Ignored;
-    }
-
-    return MRES_Supercede;
-}
-
-public void PlayCritReceived(int client)
+void PlayCritReceived(int client)
 {
     float currentTime = GetGameTime();
     float lastCritTime = g_flLastCritSound[client];
 
     bool recentPlayedCritSound = currentTime - lastCritTime < 0.5
 
-    if (!IsFakeClient(client) && !IsInvulnerable(client) && !recentPlayedCritSound)
+    if (!IsFakeClient(client) && !recentPlayedCritSound)
     {
         EmitSoundToClient(client, "player/crit_received1.wav");
         g_flLastCritSound[client] = currentTime;
     }
+}
+
+stock void MyAddServerTag(const char[] tag)
+{
+    char currtags[128];
+    if (g_Cvar_Tags == INVALID_HANDLE)
+    {
+        return;
+    }
+
+    GetConVarString(g_Cvar_Tags, currtags, sizeof(currtags));
+    if (StrContains(currtags, tag) > -1)
+    {
+        // already have tag
+        return;
+    }
+
+    char newtags[128];
+    Format(newtags, sizeof(newtags), "%s%s%s", currtags, (currtags[0]!=0) ? ",": "", tag);
+    int flags = GetConVarFlags(g_Cvar_Tags);
+    SetConVarFlags(g_Cvar_Tags, flags & ~FCVAR_NOTIFY);
+    SetConVarString(g_Cvar_Tags, newtags);
+    SetConVarFlags(g_Cvar_Tags, flags);
+}
+
+stock void MyRemoveServerTag(const char[] tag)
+{
+    char newtags[128];
+    if (g_Cvar_Tags == INVALID_HANDLE)
+    {
+        return;
+    }
+
+    GetConVarString(g_Cvar_Tags, newtags, sizeof(newtags));
+    if (StrContains(newtags, tag) == -1)
+    {
+        return;
+    }
+
+    ReplaceString(newtags, sizeof(newtags), tag, "");
+    ReplaceString(newtags, sizeof(newtags), ",,", "");
+    int flags = GetConVarFlags(g_Cvar_Tags);
+    SetConVarFlags(g_Cvar_Tags, flags & ~FCVAR_NOTIFY);
+    SetConVarString(g_Cvar_Tags, newtags);
+    SetConVarFlags(g_Cvar_Tags, flags);
 }
