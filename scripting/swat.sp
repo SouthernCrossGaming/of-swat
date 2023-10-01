@@ -4,7 +4,7 @@
 #include <dhooks>
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.1.2"
+#define PLUGIN_VERSION "1.1.3"
 public Plugin myinfo = {
     name = "[OF] SWAT",
     author = "Code: Fraeven, Rowedahelicon | Original Concept: Bungie | OF Concept: Greenie",
